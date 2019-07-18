@@ -1,6 +1,6 @@
 {
 	"mongodb":{
-		"host":"mongodb+srv://traveler:traveler!!@cluster-prws5.mongodb.net/test?retryWrites=true&w=majority",
+		"host":"mongodb+srv://traveler:traveler!!@cluster-nx8u6.mongodb.net/test?retryWrites=true&w=majority",
 		"collection" :[]
 	}
 }
