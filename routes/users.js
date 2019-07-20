@@ -1,9 +1,26 @@
 var express = require('express');
 var router = express.Router();
+const Controller = require('../constrollers/user_ctrl.js');
 
-/* GET users listing. */
-router.get('/', function(req, res, next) {
-  res.send('respond with a resource');
-});
+router.get('/', Controller.index);
+router.get('/:uid', Controller.show);
+router.post('/', Controller.create);
+
+// router.delete('/:id', (req,res) =>{
+//   const id = parseInt(req.params.id, 10);
+//   if(!id){
+//     return res.status(400).json({error:'Incorrect id'});
+//   }
+//   const userIdx = users.findIndex(user => user.id === id);
+//   if (userIdx === -1) {
+//     return res.status(404).json({error: 'Unknown user'});
+//   }
+
+//   users.splice(userIdx, 1);
+//   return res.status(204).json({message:'Success'}); 
+// })
+
+//
+
 
 module.exports = router;
