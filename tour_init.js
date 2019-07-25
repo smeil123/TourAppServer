@@ -104,6 +104,120 @@ function content_api(){
 		});
 }
 
+function content_detail(contentId,contentType){	
+
+	var tour_url = ["http://api.visitkorea.or.kr/openapi/service/rest/KorService/detailCommon?ServiceKey="
+					+key.tourapi.key
+					+"&contentTypeId="
+					+contentId
+					+"&MobileOS=ETC&MobileApp=TourAPI3.0_Guide&defaultYN=Y&firstImageYN=Y&areacodeYN=Y&catcodeYN=Y&addrinfoYN=Y&mapinfoYN=Y&overviewYN=Y&transGuideYN=Y"
+					,
+					"http://api.visitkorea.or.kr/openapi/service/rest/KorService/detailIntro?ServiceKey="
+					+key.tourapi.key
+					+"contentTypeId="
+					+contentType
+					+"&contentId="
+					+contentId
+					+"&MobileOS=ETC&MobileApp=TourAPI3.0_Guide"
+					,
+					// "http://api.visitkorea.or.kr/openapi/service/rest/KorService/detailInfo?ServiceKey="
+					// +key.tourapi.key
+					// +"&contentTypeId="
+					// +contentType
+					// +"&contentId="
+					// +contentId
+					// +"&MobileOS=ETC&MobileApp=TourAPI3.0_Guide&listYN=Y"
+					// ,
+					"http://api.visitkorea.or.kr/openapi/service/rest/KorService/detailImage?ServiceKey="
+					+key.tourapi.key
+					+"&contentTypeId="
+					+contentType
+					+"&MobileOS=ETC&MobileApp=TourAPI3.0_Guide&contentId="
+					+contentId
+					+"&imageYN=Y"
+	]
+
+	var keys = [[homepage,telname,overview,directions],
+		[contentid,contenttypeid,accomcount], // 2번은 제외할 항목
+		[originimgurl,serialnum]
+	]
+	async.waterfall([
+		function(callback){
+			
+			request({
+				url : tour_url[0],
+				method : 'GET',
+				headers: {
+			        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36',
+			        'Content-Type': 'application/x-www-form-urlencoded'
+			    }
+			},
+			function(error, response, body){
+				parseString(body,function(err,result){
+					var tours = result.response["body"][0].items[0].item;
+					for(key in tours[0]){
+						if(key == keys[0][0] ||key == keys[0][1] || key == keys[0][2] ||key == keys[0][3])	
+							tours[key] = tours[key][0];
+					}
+                    callback(null,tours);
+					
+				});
+			});
+		},
+		function(tours,callback){
+			request({
+				url : tour_url[1],
+				method : 'GET',
+				headers: {
+					'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36',
+					'Content-Type': 'application/x-www-form-urlencoded'
+				}
+			},
+			function(error, response, body){
+				parseString(body,function(err,result){
+					
+					var item = result.response["body"][0].items[0].item;
+					for(key in item[0]){
+						if(key != keys[1][0] && key != keys[1][1] && key != keys[1][2])	
+							tours[key] = item[key][0];
+					}
+                    callback(null,tours);
+				});
+			});
+		},
+		function(tours,callback){
+			
+			request({
+				url : tour_url[2],
+				method : 'GET',
+				headers: {
+					'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36',
+					'Content-Type': 'application/x-www-form-urlencoded'
+				}
+			},
+			function(error, response, body){
+				parseString(body,function(err,result){
+					
+					var item = result.response["body"][0].items[0].item;
+					for(key in item[0]){
+						if(key == keys[2][0] ||key == keys[2][1])	
+							tours[key] = item[key][0];
+					}
+					//contentid랑 합쳐서
+					//db.tour.insertMany(tours);
+                    callback(null,null);
+				})
+					
+			});	
+		},
+	],
+		function(err, massage){
+			console.log("db content init done");
+		
+		});
+}
+
+
 //var truck = Object.assign(car, truckSpecific);
 function tot_areacode(url,callback){
 	request({

@@ -28,8 +28,6 @@ exports.index_paging = (req,res) =>{
 }
 
 exports.area_show = (req,res) =>{
-    //수정필요 area to areacode
-    
     const area =  req.params.name;
     const cnt =  parseInt(req.params.cnt, 10);
     if(!cnt){
@@ -79,10 +77,14 @@ exports.content_show = (req,res) =>{
 }
 
 exports.title_search = (req,res) =>{
-    //수정필요 area to areacode
+    
     const name =  qs.unescape(req.params.name);
-
-    db.tour.find({$text : {$search : name}}).toArray(function(err,result){
+    const page =  parseInt(req.params.page, 10);
+    if(page&&!page){
+		return res.status(400).json({error:'Incorrect page num'});
+	}
+    console.log((page-1)*10)
+    db.tour.find({$text : {$search : name}}).skip((page-1)*10).limit(10).toArray(function(err,result){
         if(err){
             console.log(err);
 			return res.status(400).json({error:'database error'});
