@@ -2,7 +2,10 @@ var request = require('request');
 var async = require('async');
 var parseString = require('xml2js').parseString;
 var db = require('./lib/dbConnect.js');
-var key = require('./config/api.json');
+var api_key = require('./config/api.json').tourapi.key_2;
+
+var start_index = 500
+var end_index = 800
 
 exports.init = function(){
     async.waterfall([
@@ -12,12 +15,12 @@ exports.init = function(){
                     console.log(err);
                 }
                 else{
-                    if(count>0)
+                    if(count>=25164)
                         console.log('tour content content exist');
                     else{
                         console.log('tour content is created');
                         content_api();
-                        db.tour.createIndex({title:"text"})
+						db.tour.createIndex({title:"text"})
                     }
                 }
                 callback(null,null);
@@ -34,7 +37,7 @@ exports.init = function(){
                     else{
                         console.log('areacode is created');
                         var url = "http://api.visitkorea.or.kr/openapi/service/rest/KorService/areaCode?ServiceKey="+
-                            key.tourapi.key +
+                            api_key +
                             "&MobileOS=ETC&MobileApp=TourAPI3.0_Guide";
 
                         tot_areacode(url,function(tot){
@@ -51,7 +54,7 @@ exports.init = function(){
 function content_api(){
 
 	var tour_url = "http://api.visitkorea.or.kr/openapi/service/rest/KorService/areaBasedList?ServiceKey="+
-		key.tourapi.key+
+		api_key+
 		"&contentTypeId=&areaCode=&sigunguCode=&cat1=&cat2=&cat3=&listYN=Y&MobileOS=ETC&MobileApp=TourAPI3.0_Guide&arrange=A"
 	
 
@@ -89,32 +92,50 @@ function content_api(){
 					var tours = result.response["body"][0].items[0].item;
 					for(var i=0; i<tours.length; i++){
 						for(key in tours[i]){
-							tours[i][key] = tours[i][key][0];
+							if(key=="areacode" || key == "contenttypeid" || key == "readcount" || key == "sigungucode" || key == "zipcode" || key == "contentid"){
+								tours[i][key] = parseInt(tours[i][key][0]);
+							}
+							else if(key=="mapx" || key == "mapy"){
+								tours[i][key] = parseFloat(tours[i][key][0]);
+							}
+							else{
+								tours[i][key] = tours[i][key][0];								
+							}
 						}
 					}
-                    db.tour.insertMany(tours);
-                    callback(null,null);
+                    // db.tour.insertMany(tours);
+                    callback(null,tours);
 				})
 					
 			});	
-		}],
+		},function(tours,callback){
+			var flag = false;
+			for(var i=start_index; i<end_index; i++){
+				content_detail(tours[i]);
+			}
+			callback(null,null);
+		}	
+		],
 		function(err, massage){
-			console.log("db content init done");
+			console.log("tour db content init done");
 		
 		});
 }
 
-function content_detail(contentId,contentType){	
+function content_detail(origin_tour){	
 
+	var contentId = origin_tour.contentid
+	var contentType = origin_tour.contenttypeid
+	
 	var tour_url = ["http://api.visitkorea.or.kr/openapi/service/rest/KorService/detailCommon?ServiceKey="
-					+key.tourapi.key
-					+"&contentTypeId="
+					+api_key
+					+"&contentId="
 					+contentId
 					+"&MobileOS=ETC&MobileApp=TourAPI3.0_Guide&defaultYN=Y&firstImageYN=Y&areacodeYN=Y&catcodeYN=Y&addrinfoYN=Y&mapinfoYN=Y&overviewYN=Y&transGuideYN=Y"
 					,
 					"http://api.visitkorea.or.kr/openapi/service/rest/KorService/detailIntro?ServiceKey="
-					+key.tourapi.key
-					+"contentTypeId="
+					+api_key
+					+"&contentTypeId="
 					+contentType
 					+"&contentId="
 					+contentId
@@ -129,7 +150,7 @@ function content_detail(contentId,contentType){
 					// +"&MobileOS=ETC&MobileApp=TourAPI3.0_Guide&listYN=Y"
 					// ,
 					"http://api.visitkorea.or.kr/openapi/service/rest/KorService/detailImage?ServiceKey="
-					+key.tourapi.key
+					+api_key
 					+"&contentTypeId="
 					+contentType
 					+"&MobileOS=ETC&MobileApp=TourAPI3.0_Guide&contentId="
@@ -137,31 +158,51 @@ function content_detail(contentId,contentType){
 					+"&imageYN=Y"
 	]
 
-	var keys = [[homepage,telname,overview,directions],
-		[contentid,contenttypeid,accomcount], // 2번은 제외할 항목
-		[originimgurl,serialnum]
+	var keys = [["homepage","telname","overview","directions"],
+		["contentid","contenttypeid","accomcount"], // 2번은 제외할 항목
+		["originimgurl","serialnum"]
 	]
 	async.waterfall([
 		function(callback){
-			
-			request({
-				url : tour_url[0],
-				method : 'GET',
-				headers: {
-			        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36',
-			        'Content-Type': 'application/x-www-form-urlencoded'
-			    }
-			},
-			function(error, response, body){
-				parseString(body,function(err,result){
-					var tours = result.response["body"][0].items[0].item;
-					for(key in tours[0]){
-						if(key == keys[0][0] ||key == keys[0][1] || key == keys[0][2] ||key == keys[0][3])	
-							tours[key] = tours[key][0];
-					}
-                    callback(null,tours);
-					
-				});
+			db.tour.find({_id : contentId}).count(function(err,count){
+				if(count == 0){
+					request({
+						url : tour_url[0],
+						method : 'GET',
+						headers: {
+							'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36',
+							'Content-Type': 'application/x-www-form-urlencoded'
+						}
+					},
+					function(error, response, body){
+						var tours = [];
+						parseString(body,function(err,result){
+
+							try{
+								var items = result.response["body"][0].items[0].item;
+							}
+							catch(error){
+								// limit api key
+								console.log(error);
+								console.log(tour_url[0]);
+								return callback(true,null); //note return here
+							}
+							for(key in items[0]){
+								if(key == keys[0][0] ||key == keys[0][1] || key == keys[0][2] ||key == keys[0][3]){	
+									if(items[key] != undefined){
+										tours[key] = items[key][0];
+									}
+								}
+							}
+							console.log("없음")
+							callback(null,tours);
+							
+						});
+					});
+				}else{
+					console.log("존재함")
+					return callback(true,null); //note return here
+				}
 			});
 		},
 		function(tours,callback){
@@ -175,18 +216,19 @@ function content_detail(contentId,contentType){
 			},
 			function(error, response, body){
 				parseString(body,function(err,result){
-					
 					var item = result.response["body"][0].items[0].item;
+					
 					for(key in item[0]){
-						if(key != keys[1][0] && key != keys[1][1] && key != keys[1][2])	
-							tours[key] = item[key][0];
+						if(key != keys[1][0] && key != keys[1][1] && key != keys[1][2]){
+							if(item[0][key][0] != undefined)
+								tours[key] = item[0][key][0];
+						}
 					}
                     callback(null,tours);
 				});
 			});
 		},
 		function(tours,callback){
-			
 			request({
 				url : tour_url[2],
 				method : 'GET',
@@ -197,23 +239,42 @@ function content_detail(contentId,contentType){
 			},
 			function(error, response, body){
 				parseString(body,function(err,result){
-					
-					var item = result.response["body"][0].items[0].item;
-					for(key in item[0]){
-						if(key == keys[2][0] ||key == keys[2][1])	
-							tours[key] = item[key][0];
+
+					var images = result.response["body"][0].items[0].item;
+					tours['image'] = new Array();
+
+					for(image in images){
+						var element =  new Object();
+						for(key in images[image]){
+							if(key == keys[2][0] ||key == keys[2][1]){
+								if(images[image][key] != undefined){
+									element[key] = images[image][key][0];
+								}
+							}
+						}
+						if(element){
+							tours['image'].push(element);
+						}
 					}
-					//contentid랑 합쳐서
-					//db.tour.insertMany(tours);
-                    callback(null,null);
+					if(tours['image'].length == 0){
+						delete tours['image']
+					}
+                    callback(null,tours);
 				})
 					
 			});	
-		},
+		},function(tours,callback){
+			const result = Object.assign(origin_tour, tours);
+			result["_id"] = result["contentid"];
+			delete result["contentid"]
+			db.tour.insert(result,function(err){
+				if(err){
+					console.log("이미 존재함");
+				}
+			});			
+		}
 	],
-		function(err, massage){
-			console.log("db content init done");
-		
+	function(err, massage){		
 		});
 }
 
@@ -250,7 +311,7 @@ function tot_areacode(url,callback){
 
 function area_api(totnum){
 	var url = "http://api.visitkorea.or.kr/openapi/service/rest/KorService/areaCode?ServiceKey="+
-		key.tourapi.key+
+		api_key+
 		"&MobileOS=ETC&MobileApp=TourAPI3.0_Guide&numOfRows="+totnum;
 
 	async.waterfall([
@@ -312,7 +373,7 @@ function area_api(totnum){
 				for(var i =0; i<itemArray.length; i++){ 
 				
 					url_array[i] = "http://api.visitkorea.or.kr/openapi/service/rest/KorService/areaCode?ServiceKey=" 
-						+key.tourapi.key
+						+api_key
 						+"&areaCode=" 
 						+itemArray[i]._id 
 						+"&MobileOS=ETC&MobileApp=TourAPI3.0_Guide"; 

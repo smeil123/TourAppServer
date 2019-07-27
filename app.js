@@ -53,6 +53,6 @@ app.use(function(err, req, res, next) {
 setTimeout(function () {
   console.log('timeout completed'); 
   db_init.init();
-}, 3000); 
+}, 5000); 
 
 module.exports = app;
