@@ -3,7 +3,7 @@ var router = express.Router();
 const Controller = require('../constrollers/user_ctrl.js');
 
 router.get('/', Controller.index);
-router.get('/:uid', Controller.show);
+router.get('/:email', Controller.show);
 router.post('/', Controller.create);
 
 // router.delete('/:id', (req,res) =>{

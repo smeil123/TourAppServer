@@ -4,22 +4,28 @@ var parseString = require('xml2js').parseString;
 var db = require('./lib/dbConnect.js');
 var api_key = require('./config/api.json').tourapi.key_2;
 
-var start_index = 500
-var end_index = 800
+var start_index = 2300
+var end_index = 2600
+var limit_flag = true
 
 exports.init = function(){
     async.waterfall([
         function(callback){
+
             db.tour.find().count(function(err,count){
                 if(err){
                     console.log(err);
                 }
                 else{
                     if(count>=25164)
-                        console.log('tour content content exist');
+						console.log('tour content content exist');
+					else if(limit_flag)
+						console.log("오늘은 더이상 api사용할 수 없음")
                     else{
-                        console.log('tour content is created');
+						console.log('tour content is created');
+						// content_detail(null);
                         content_api();
+						//db.tour.createIndex({title:"text",addr1:"text"})
 						db.tour.createIndex({title:"text"})
                     }
                 }
@@ -124,9 +130,11 @@ function content_api(){
 
 function content_detail(origin_tour){	
 
+	// var contentId = "1614793"
+	// var contentType = "12"
+	// var origin_tour = new Object();
 	var contentId = origin_tour.contentid
 	var contentType = origin_tour.contenttypeid
-	
 	var tour_url = ["http://api.visitkorea.or.kr/openapi/service/rest/KorService/detailCommon?ServiceKey="
 					+api_key
 					+"&contentId="
@@ -194,13 +202,11 @@ function content_detail(origin_tour){
 									}
 								}
 							}
-							console.log("없음")
 							callback(null,tours);
 							
 						});
 					});
 				}else{
-					console.log("존재함")
 					return callback(true,null); //note return here
 				}
 			});
@@ -216,8 +222,13 @@ function content_detail(origin_tour){
 			},
 			function(error, response, body){
 				parseString(body,function(err,result){
-					var item = result.response["body"][0].items[0].item;
-					
+					try{
+						var item = result.response["body"][0].items[0].item;
+					}
+					catch(error){
+						console.log(tour_url[1]);
+						return callback(true,null);
+					}
 					for(key in item[0]){
 						if(key != keys[1][0] && key != keys[1][1] && key != keys[1][2]){
 							if(item[0][key][0] != undefined)
@@ -275,7 +286,8 @@ function content_detail(origin_tour){
 		}
 	],
 	function(err, massage){		
-		});
+
+	});
 }
 
 

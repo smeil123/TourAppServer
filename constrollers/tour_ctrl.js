@@ -27,10 +27,10 @@ exports.index_paging = (req,res) =>{
 	})
 }
 
-exports.area_show = (req,res) =>{
+exports.area_search = (req,res) =>{
     const area =  req.params.name;
-    const cnt =  parseInt(req.params.cnt, 10);
-    if(!cnt){
+    const page =  parseInt(req.params.page, 10);
+    if(page&&!page){
 		return res.status(400).json({error:'Incorrect page num'});
 	}
 
@@ -41,13 +41,15 @@ exports.area_show = (req,res) =>{
                     console.log(err);
                     return res.status(400).json({error:'database error'});
                 }
-                console.log(areacode._id);
-                console.log(areacode);
+                if(areacode==null){
+                    res.status(200).send([]);
+                    return callback(true,null)
+                }
                 callback(null,areacode);
             })  
         },
         function(areacode,callback){
-            db.tour.find({areacode : String(areacode._id)},{ projection : {readcount : 1, title: 1, areacode:1,mapx:1,mapy:1,title:1}}).limit(cnt).toArray(function(err,result){
+            db.tour.find({$or:[{areacode : areacode._id},{addr1:{$regex:area}}]}).skip((page-1)*10).limit(10).toArray(function(err,result){
                 if(err){
                     return res.status(400).json({error:'database error'});
                 }
@@ -84,7 +86,17 @@ exports.title_search = (req,res) =>{
 		return res.status(400).json({error:'Incorrect page num'});
 	}
     console.log((page-1)*10)
-    db.tour.find({$text : {$search : name}}).skip((page-1)*10).limit(10).toArray(function(err,result){
+    db.tour.aggregate([{
+        $lookup:{
+            from:'area', 
+            localField:'areacode', 
+            foreignField: '_id',
+            as:'areacode'
+        }
+    },
+    {
+        $match:{title:{$regex:name}
+    }}]).skip((page-1)*10).limit(10).toArray(function(err,result){
         if(err){
             console.log(err);
 			return res.status(400).json({error:'database error'});
