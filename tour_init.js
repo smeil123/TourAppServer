@@ -2,16 +2,15 @@ var request = require('request');
 var async = require('async');
 var parseString = require('xml2js').parseString;
 var db = require('./lib/dbConnect.js');
-var api_key = require('./config/api.json').tourapi.key_2;
+var api_key = require('./config/api.json').tourapi.key;
 
-var start_index = 2300
-var end_index = 2600
+var start_index = 1000
+var end_index = 1100
 var limit_flag = true
 
 exports.init = function(){
     async.waterfall([
         function(callback){
-
             db.tour.find().count(function(err,count){
                 if(err){
                     console.log(err);
@@ -23,7 +22,7 @@ exports.init = function(){
 						console.log("오늘은 더이상 api사용할 수 없음")
                     else{
 						console.log('tour content is created');
-						// content_detail(null);
+						
                         content_api();
 						//db.tour.createIndex({title:"text",addr1:"text"})
 						db.tour.createIndex({title:"text"})
@@ -130,8 +129,8 @@ function content_api(){
 
 function content_detail(origin_tour){	
 
-	// var contentId = "1614793"
-	// var contentType = "12"
+	// var contentId = "2381406"
+	// var contentType = "25"
 	// var origin_tour = new Object();
 	var contentId = origin_tour.contentid
 	var contentType = origin_tour.contenttypeid
@@ -165,7 +164,6 @@ function content_detail(origin_tour){
 					+contentId
 					+"&imageYN=Y"
 	]
-
 	var keys = [["homepage","telname","overview","directions"],
 		["contentid","contenttypeid","accomcount"], // 2번은 제외할 항목
 		["originimgurl","serialnum"]
@@ -187,7 +185,7 @@ function content_detail(origin_tour){
 						parseString(body,function(err,result){
 
 							try{
-								var items = result.response["body"][0].items[0].item;
+								var items = result.response["body"][0].items[0].item[0];
 							}
 							catch(error){
 								// limit api key
@@ -195,7 +193,7 @@ function content_detail(origin_tour){
 								console.log(tour_url[0]);
 								return callback(true,null); //note return here
 							}
-							for(key in items[0]){
+							for(key in items){
 								if(key == keys[0][0] ||key == keys[0][1] || key == keys[0][2] ||key == keys[0][3]){	
 									if(items[key] != undefined){
 										tours[key] = items[key][0];
@@ -223,16 +221,16 @@ function content_detail(origin_tour){
 			function(error, response, body){
 				parseString(body,function(err,result){
 					try{
-						var item = result.response["body"][0].items[0].item;
+						var item = result.response["body"][0].items[0].item[0];
 					}
 					catch(error){
 						console.log(tour_url[1]);
 						return callback(true,null);
 					}
-					for(key in item[0]){
+					for(key in item){
 						if(key != keys[1][0] && key != keys[1][1] && key != keys[1][2]){
-							if(item[0][key][0] != undefined)
-								tours[key] = item[0][key][0];
+							if(item[key][0] != undefined)
+								tours[key] = item[key][0];
 						}
 					}
                     callback(null,tours);
