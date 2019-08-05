@@ -33,17 +33,25 @@ git clone ...
 https://cloud.mongodb.com/
 
 * user생성
+
 ![mongodb_유저](./image/mongodb_유저.JPG)
 
 * 현재 IP등록
+
 ![mongodb_connect](./image/mongodb_connect.JPG)
+
 ![mongodb_ip](./image/mongodb_ip.JPG)
+
 ![mongodb_current](./image/mongodb_current.JPG)
+
 여기서 현제 IP를 추가합니다
 
 * connect
+
 ![mongodb_connect_app](./image/mongodb_connect_app.JPG)
+
 ![mongodb_exam](./image/mongodb_exam.JPG)
+
 
 이 정보를
 config/db.json 에 추가한다
